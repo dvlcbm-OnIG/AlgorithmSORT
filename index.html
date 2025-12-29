@@ -89,7 +89,7 @@ h1 {
 
 .field { display: grid; gap: 6px; margin-bottom: 12px; }
 label { color: var(--muted); font-size: 13px; }
-input {
+input, select {
     width: 100%;
     padding: 10px 12px;
     border-radius: 10px;
@@ -97,6 +97,55 @@ input {
     background: #0b1224;
     color: var(--text);
     font-size: 15px;
+}
+select {
+    cursor: pointer;
+}
+select:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+select option {
+    background: #0b1224;
+    color: var(--text);
+}
+input[type="range"] {
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #fbbf24);
+    cursor: pointer;
+    border: 2px solid #0b1224;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 12px var(--accent);
+}
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: #0b1224;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #fbbf24);
+    cursor: pointer;
+    border: 2px solid #0b1224;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: #0b1224;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -147,26 +196,49 @@ button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 .bars {
     display: flex;
     align-items: flex-end;
-    gap: 8px;
+    gap: 1px;
     height: 240px;
-    padding: 12px;
+    padding: 8px;
     background: #0b1224;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    width: 100%;
+    overflow: hidden;
 }
 .bar {
     position: relative;
-    flex: 1;
-    min-width: 26px;
-    border-radius: 10px 10px 6px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    transition: height 140ms ease, transform 120ms ease;
+    flex: 1 1 0;
+    min-width: 1px;
+    border-radius: 2px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1), 
+                height 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 300ms ease,
+                filter 300ms ease;
     overflow: hidden;
+    will-change: transform;
+}
+.bar:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 .bar:hover { transform: translateY(-3px); }
 .bar.zero { background: #18243f; border-style: dashed; }
+.bar.comparing {
+    border-color: rgba(245, 165, 36, 0.8);
+    box-shadow: 0 0 20px rgba(245, 165, 36, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+    transform: translateY(-8px) scaleY(1.02);
+}
+.bar.swapping {
+    box-shadow: 0 0 25px rgba(45, 212, 191, 0.5), 0 2px 8px rgba(0, 0, 0, 0.25);
+    filter: brightness(1.2);
+    z-index: 10;
+}
+.bar.sorted {
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
+}
 .bar .value {
     position: absolute;
     bottom: 6px;
@@ -177,6 +249,12 @@ button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
     color: #0b1224;
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
     pointer-events: none;
+    transition: all 300ms ease;
+    opacity: 1;
+}
+.bars:has(> .bar:nth-child(100)) .bar .value {
+    opacity: 0;
+    font-size: 0;
 }
 .bars.empty { justify-content: center; align-items: center; color: var(--muted); font-weight: 600; }
 
@@ -221,26 +299,53 @@ button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 <body>
     <div class="wrap">
         <header>
-            <p class="eyebrow">divide-and-conquer demo</p>
-            <h1>Quick Sort Playground</h1>
-            <p class="lede">Quick sort partitions and conquers—now rendered as a live histogram. Enter values, hit Start, and listen to each swap.</p>
+            <p class="eyebrow">sorting algorithms visualizer</p>
+            <h1>Sorting Playground</h1>
+            <p class="lede">Choose from 4 classic sorting algorithms and watch them come to life as animated histograms. Enter values, select an algorithm, and listen to each swap.</p>
         </header>
 
         <section class="controls card">
+            <div class="field">
+                <label for="sortType">Sorting Algorithm</label>
+                <select id="sortType">
+                    <option value="quick">Quick Sort</option>
+                    <option value="bubble">Bubble Sort</option>
+                    <option value="merge">Merge Sort</option>
+                    <option value="selection">Selection Sort</option>
+                    <option value="counting">Counting Sort (Fastest)</option>
+                </select>
+            </div>
             <div class="field">
                 <label for="numbers">Numbers (comma or space separated)</label>
                 <input id="numbers" type="text" value="3, 1, 4, 2" autocomplete="off">
             </div>
             <div class="field">
+                <label for="randomCount">Number of columns: <span id="columnCount">10</span></label>
+                <input id="randomCount" type="number" min="2" max="1000" value="10">
+            </div>
+            <div class="field">
+                <label for="randomMin">Random range: Min</label>
+                <input id="randomMin" type="number" value="1">
+            </div>
+            <div class="field">
+                <label for="randomMax">Random range: Max</label>
+                <input id="randomMax" type="number" value="100">
+            </div>
+            <button id="generateBtn" class="ghost" style="margin-bottom: 12px; width: 100%;">Generate Random Array</button>
+            <div class="field">
                 <label for="maxIterations">Max operations (failsafe)</label>
                 <input id="maxIterations" type="number" min="1" value="8000">
+            </div>
+            <div class="field">
+                <label for="speed">Animation speed: <span id="speedValue">1x</span></label>
+                <input id="speed" type="range" min="0.1" max="200" step="0.1" value="1">
             </div>
             <div class="buttons">
                 <button id="startBtn">Start</button>
                 <button id="stopBtn" class="ghost" disabled>Stop</button>
                 <button id="resetBtn" class="ghost">Reset</button>
             </div>
-            <p class="hint">Runs an in-place quick sort. Max operations caps the animation so it never locks up.</p>
+            <p class=".hint">Runs an in-place quick sort. Max operations caps the animation so it never locks up.</p>
         </section>
 
         <section class="status card">
@@ -264,8 +369,16 @@ button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
     </div>
 
     <script>
+const sortTypeSelect = document.getElementById('sortType');
 const numbersInput = document.getElementById('numbers');
 const maxIterationsInput = document.getElementById('maxIterations');
+const speedInput = document.getElementById('speed');
+const speedValue = document.getElementById('speedValue');
+const randomCountInput = document.getElementById('randomCount');
+const columnCount = document.getElementById('columnCount');
+const randomMinInput = document.getElementById('randomMin');
+const randomMaxInput = document.getElementById('randomMax');
+const generateBtn = document.getElementById('generateBtn');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const resetBtn = document.getElementById('resetBtn');
@@ -284,6 +397,8 @@ let operations = 0;
 let running = false;
 let startTime = 0;
 let audioCtx = null;
+let barElements = [];
+let speed = 1;
 
 const parseNumbers = () => {
     const raw = numbersInput.value.trim();
@@ -292,6 +407,22 @@ const parseNumbers = () => {
         .split(/[ ,]+/)
         .map(Number)
         .filter((n) => Number.isFinite(n));
+};
+
+const generateRandomArray = () => {
+    const count = Math.max(2, Math.min(1000, parseInt(randomCountInput.value) || 10));
+    const min = parseInt(randomMinInput.value) || 1;
+    const max = parseInt(randomMaxInput.value) || 100;
+    const actualMin = Math.min(min, max);
+    const actualMax = Math.max(min, max);
+    const randomNumbers = [];
+    for (let i = 0; i < count; i++) {
+        const randomNum = Math.floor(Math.random() * (actualMax - actualMin + 1)) + actualMin;
+        randomNumbers.push(randomNum);
+    }
+    numbersInput.value = randomNumbers.join(', ');
+    log(`Generated ${count} columns with random numbers between ${actualMin} and ${actualMax}`);
+    reset();
 };
 
 const computeRanks = (arr) => {
@@ -307,10 +438,11 @@ const computeRanks = (arr) => {
     return arr.map((v) => buckets.get(v).shift());
 };
 
-const renderArray = () => {
+const renderArray = (activeIndices = [], skipRecreate = false) => {
     if (!data.length) {
         arrayView.classList.add('empty');
         arrayView.textContent = 'No data to show';
+        barElements = [];
         return;
     }
 
@@ -318,21 +450,47 @@ const renderArray = () => {
     const ranks = computeRanks(data);
     const maxRank = Math.max(1, data.length - 1);
 
-    arrayView.innerHTML = data
-        .map((n, idx) => {
+    if (skipRecreate && barElements.length === data.length) {
+        barElements.forEach((bar, idx) => {
             const rank = ranks[idx];
             const heightPct = data.length === 1 ? 100 : 20 + (80 * rank) / maxRank;
+            const n = data[idx];
             const isPos = n >= 0;
             const gradientTop = isPos ? '#34d399' : '#fbbf24';
             const gradientBottom = isPos ? '#0ea5e9' : '#f97316';
-            const extraClass = n === 0 ? ' zero' : '';
-            return `
-                <div class="bar${extraClass}" style="height:${heightPct}%; background: linear-gradient(180deg, ${gradientTop}, ${gradientBottom});">
-                    <span class="value">${n}</span>
-                </div>
-            `;
-        })
-        .join('');
+            bar.style.height = `${heightPct}%`;
+            bar.style.background = `linear-gradient(180deg, ${gradientTop}, ${gradientBottom})`;
+            bar.style.order = idx;
+            bar.style.position = 'relative';
+            bar.querySelector('.value').textContent = n;
+            bar.className = 'bar';
+            if (n === 0) bar.classList.add('zero');
+            if (activeIndices.includes(idx)) bar.classList.add('swapping');
+        });
+        return;
+    }
+
+    arrayView.innerHTML = '';
+    barElements = data.map((n, idx) => {
+        const rank = ranks[idx];
+        const heightPct = data.length === 1 ? 100 : 20 + (80 * rank) / maxRank;
+        const isPos = n >= 0;
+        const gradientTop = isPos ? '#34d399' : '#fbbf24';
+        const gradientBottom = isPos ? '#0ea5e9' : '#f97316';
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        if (n === 0) bar.classList.add('zero');
+        if (activeIndices.includes(idx)) bar.classList.add('swapping');
+        bar.style.height = `${heightPct}%`;
+        bar.style.background = `linear-gradient(180deg, ${gradientTop}, ${gradientBottom})`;
+        bar.style.order = idx;
+        const valueSpan = document.createElement('span');
+        valueSpan.className = 'value';
+        valueSpan.textContent = n;
+        bar.appendChild(valueSpan);
+        arrayView.appendChild(bar);
+        return bar;
+    });
 };
 
 const log = (message) => {
@@ -384,12 +542,211 @@ const playSwapSound = (value) => {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const animateSwap = async (idx1, idx2) => {
+    if (!barElements[idx1] || !barElements[idx2]) return;
+    barElements[idx1].classList.add('swapping');
+    barElements[idx2].classList.add('swapping');
+    const bar1Rect = barElements[idx1].getBoundingClientRect();
+    const bar2Rect = barElements[idx2].getBoundingClientRect();
+    const distance = bar2Rect.left - bar1Rect.left;
+    barElements[idx1].style.transform = `translateX(${distance}px)`;
+    barElements[idx2].style.transform = `translateX(${-distance}px)`;
+    const animationDuration = 500 / speed;
+    barElements[idx1].style.transition = `transform ${animationDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    barElements[idx2].style.transition = `transform ${animationDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    await sleep(animationDuration);
+    [data[idx1], data[idx2]] = [data[idx2], data[idx1]];
+    [barElements[idx1], barElements[idx2]] = [barElements[idx2], barElements[idx1]];
+    barElements[idx1].style.transform = '';
+    barElements[idx2].style.transform = '';
+    barElements[idx1].style.transition = '';
+    barElements[idx2].style.transition = '';
+    renderArray([], true);
+    barElements[idx1].classList.remove('swapping');
+    barElements[idx2].classList.remove('swapping');
+};
+
 const stopRun = (reason = 'Stopped') => {
     running = false;
     startBtn.disabled = false;
     stopBtn.disabled = true;
     setBadge(reason, reason === 'Sorted!');
     updateStats(reason);
+};
+
+const bubbleSortAnimate = async () => {
+    const maxOps = Number(maxIterationsInput.value) || 1;
+    const n = data.length;
+
+    for (let i = 0; i < n - 1 && running; i++) {
+        for (let j = 0; j < n - i - 1 && running; j++) {
+            if (data[j] > data[j + 1]) {
+                operations += 1;
+                updateStats('Sorting');
+                playSwapSound(data[j]);
+                await animateSwap(j, j + 1);
+                if (operations >= maxOps) {
+                    log('Stopped: max operations reached');
+                    stopRun('Capped');
+                    return;
+                }
+            }
+        }
+    }
+
+    if (running) {
+        renderArray();
+        log('Sorted via bubble sort');
+        stopRun('Sorted!');
+    }
+};
+
+const selectionSortAnimate = async () => {
+    const maxOps = Number(maxIterationsInput.value) || 1;
+    const n = data.length;
+
+    for (let i = 0; i < n - 1 && running; i++) {
+        let minIdx = i;
+        for (let j = i + 1; j < n; j++) {
+            if (data[j] < data[minIdx]) {
+                minIdx = j;
+            }
+        }
+        if (minIdx !== i) {
+            operations += 1;
+            updateStats('Sorting');
+            playSwapSound(data[i]);
+            await animateSwap(i, minIdx);
+            if (operations >= maxOps) {
+                log('Stopped: max operations reached');
+                stopRun('Capped');
+                return;
+            }
+        }
+    }
+
+    if (running) {
+        renderArray();
+        log('Sorted via selection sort');
+        stopRun('Sorted!');
+    }
+};
+
+const countingSortAnimate = async () => {
+    const maxOps = Number(maxIterationsInput.value) || 1;
+    let minVal = data[0];
+    let maxVal = data[0];
+    for (let i = 1; i < data.length; i++) {
+        if (data[i] < minVal) minVal = data[i];
+        if (data[i] > maxVal) maxVal = data[i];
+    }
+    const range = maxVal - minVal + 1;
+    const count = new Array(range).fill(0);
+    for (let i = 0; i < data.length && running; i++) {
+        count[data[i] - minVal]++;
+        operations += 1;
+        renderArray([i], true);
+        updateStats('Sorting');
+        if (operations >= maxOps) {
+            log('Stopped: max operations reached');
+            stopRun('Capped');
+            return;
+        }
+        await sleep(20 / speed);
+    }
+    for (let i = 1; i < count.length && running; i++) {
+        count[i] += count[i - 1];
+        await sleep(5 / speed);
+    }
+    const output = new Array(data.length);
+    for (let i = data.length - 1; i >= 0 && running; i--) {
+        const value = data[i];
+        const idx = count[value - minVal] - 1;
+        output[idx] = value;
+        count[value - minVal]--;
+        operations += 1;
+        renderArray([idx], true);
+        updateStats('Sorting');
+        playSwapSound(value);
+        if (operations >= maxOps) {
+            log('Stopped: max operations reached');
+            stopRun('Capped');
+            return;
+        }
+        await sleep(30 / speed);
+    }
+    for (let i = 0; i < output.length; i++) {
+        data[i] = output[i];
+    }
+    if (running) {
+        renderArray();
+        log('Sorted via counting sort');
+        stopRun('Sorted!');
+    }
+};
+
+const mergeSortAnimate = async () => {
+    const maxOps = Number(maxIterationsInput.value) || 1;
+
+    const merge = async (left, mid, right) => {
+        const leftArr = data.slice(left, mid + 1);
+        const rightArr = data.slice(mid + 1, right + 1);
+        let i = 0, j = 0, k = left;
+
+        while (i < leftArr.length && j < rightArr.length && running) {
+            if (leftArr[i] <= rightArr[j]) {
+                data[k] = leftArr[i];
+                i++;
+            } else {
+                data[k] = rightArr[j];
+                j++;
+            }
+            operations += 1;
+            renderArray([k], true);
+            updateStats('Sorting');
+            playSwapSound(data[k]);
+            if (operations >= maxOps) {
+                log('Stopped: max operations reached');
+                stopRun('Capped');
+                return false;
+            }
+            k++;
+            await sleep(80 / speed);
+        }
+
+        while (i < leftArr.length && running) {
+            data[k] = leftArr[i];
+            renderArray([k], true);
+            i++;
+            k++;
+            await sleep(60 / speed);
+        }
+
+        while (j < rightArr.length && running) {
+            data[k] = rightArr[j];
+            renderArray([k], true);
+            j++;
+            k++;
+            await sleep(60 / speed);
+        }
+        return true;
+    };
+
+    const mergeSortHelper = async (left, right) => {
+        if (left >= right || !running) return true;
+        const mid = Math.floor((left + right) / 2);
+        if (!await mergeSortHelper(left, mid)) return false;
+        if (!await mergeSortHelper(mid + 1, right)) return false;
+        return await merge(left, mid, right);
+    };
+
+    await mergeSortHelper(0, data.length - 1);
+
+    if (running) {
+        renderArray();
+        log('Sorted via merge sort');
+        stopRun('Sorted!');
+    }
 };
 
 const quickSortAnimate = async () => {
@@ -402,25 +759,26 @@ const quickSortAnimate = async () => {
 
         let i = low;
         let j = high;
-        const pivot = data[Math.floor((low + high) / 2)];
+        const pivotIdx = Math.floor((low + high) / 2);
+        const pivot = data[pivotIdx];
 
         while (i <= j && running) {
             while (data[i] < pivot) i += 1;
             while (data[j] > pivot) j -= 1;
             if (i <= j) {
-                [data[i], data[j]] = [data[j], data[i]];
-                operations += 1;
-                renderArray();
-                updateStats('Sorting');
-                playSwapSound(data[i]);
-                if (operations >= maxOps) {
-                    log('Stopped: max operations reached');
-                    stopRun('Capped');
-                    return;
+                if (i !== j) {
+                    operations += 1;
+                    updateStats('Sorting');
+                    playSwapSound(data[i]);
+                    await animateSwap(i, j);
+                    if (operations >= maxOps) {
+                        log('Stopped: max operations reached');
+                        stopRun('Capped');
+                        return;
+                    }
                 }
                 i += 1;
                 j -= 1;
-                await sleep(30);
             }
         }
 
@@ -429,6 +787,7 @@ const quickSortAnimate = async () => {
     }
 
     if (running) {
+        renderArray();
         log('Sorted via quick sort');
         stopRun('Sorted!');
     }
@@ -450,8 +809,33 @@ const start = async () => {
     setBadge('Sorting…');
     renderArray();
     updateStats('Sorting');
-    log(`Starting quick sort with [${data.join(', ')}] (n=${data.length})`);
-    await quickSortAnimate();
+    const sortType = sortTypeSelect.value;
+    const sortNames = {
+        quick: 'quick sort',
+        bubble: 'bubble sort',
+        merge: 'merge sort',
+        selection: 'selection sort',
+        counting: 'counting sort'
+    };
+    log(`Starting ${sortNames[sortType]} with [${data.join(', ')}] (n=${data.length})`);
+    switch (sortType) {
+        case 'bubble':
+            await bubbleSortAnimate();
+            break;
+        case 'merge':
+            await mergeSortAnimate();
+            break;
+        case 'selection':
+            await selectionSortAnimate();
+            break;
+        case 'counting':
+            await countingSortAnimate();
+            break;
+        case 'quick':
+        default:
+            await quickSortAnimate();
+            break;
+    }
 };
 
 const reset = () => {
@@ -472,11 +856,23 @@ stopBtn.addEventListener('click', () => {
     stopRun('Paused');
 });
 resetBtn.addEventListener('click', reset);
+generateBtn.addEventListener('click', generateRandomArray);
 
+randomCountInput.addEventListener('input', () => {
+    const count = Math.max(2, Math.min(1000, parseInt(randomCountInput.value) || 10));
+    randomCountInput.value = count;
+    columnCount.textContent = count;
+});
+
+speedInput.addEventListener('input', () => {
+    speed = parseFloat(speedInput.value);
+    speedValue.textContent = `${speed}x`;
+});
+
+sortTypeSelect.addEventListener('change', reset);
 numbersInput.addEventListener('change', reset);
 maxIterationsInput.addEventListener('change', reset);
 
-// initial render
 reset();
     </script>
 </body>
