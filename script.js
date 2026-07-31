@@ -29,6 +29,21 @@ let audioCtx = null;
 let barElements = [];
 let speed = 1;
 
+const clampColumnCount = (value) => Math.max(2, Math.min(1000, value));
+
+const parseIntOrNull = (value) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+};
+
+const normalizeColumnCount = () => {
+    const parsed = parseIntOrNull(randomCountInput.value);
+    const count = clampColumnCount(parsed ?? 10);
+    randomCountInput.value = count;
+    columnCount.textContent = count;
+    return count;
+};
+
 const parseNumbers = () => {
     const raw = numbersInput.value.trim();
     if (!raw) return [];
@@ -39,7 +54,7 @@ const parseNumbers = () => {
 };
 
 const generateRandomArray = () => {
-    const count = Math.max(2, Math.min(1000, parseInt(randomCountInput.value) || 10));
+    const count = normalizeColumnCount();
     const min = parseInt(randomMinInput.value) || 1;
     const max = parseInt(randomMaxInput.value) || 100;
     const actualMin = Math.min(min, max);
@@ -488,10 +503,15 @@ resetBtn.addEventListener('click', reset);
 generateBtn.addEventListener('click', generateRandomArray);
 
 randomCountInput.addEventListener('input', () => {
-    const count = Math.max(2, Math.min(1000, parseInt(randomCountInput.value) || 10));
-    randomCountInput.value = count;
-    columnCount.textContent = count;
+    const parsed = parseIntOrNull(randomCountInput.value);
+    if (parsed === null) {
+        columnCount.textContent = '';
+        return;
+    }
+    columnCount.textContent = clampColumnCount(parsed);
 });
+
+randomCountInput.addEventListener('blur', normalizeColumnCount);
 
 speedInput.addEventListener('input', () => {
     speed = parseFloat(speedInput.value);
@@ -502,4 +522,5 @@ sortTypeSelect.addEventListener('change', reset);
 numbersInput.addEventListener('change', reset);
 maxIterationsInput.addEventListener('change', reset);
 
+normalizeColumnCount();
 reset();
